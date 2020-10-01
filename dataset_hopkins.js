@@ -15,7 +15,7 @@ class HopkinsDataset extends BaseDataset {
         this.$subselect = $("select[name='" + this.prefix + "_subfilter']");
         this.$column = $("select[name='" + this.prefix + "_column']");
     }
-    
+
     populate_html() {
         var self = this;
 
@@ -80,7 +80,7 @@ class HopkinsDataset extends BaseDataset {
             // columns[1] should be "population"
             if (series.population > 0) {
                 series.data_y = series.data_y.map(function(x) {return  100.0 * x / series.population;});
-                series.label += ' percent'; 
+                series.label += ' percent';
                 series.y_axis = 'rate';
             }
         } else if (column.endsWith(increment_postfix)) {
@@ -107,7 +107,7 @@ class HopkinsDataset extends BaseDataset {
         var subtable = this.table;
         var label = column + " " + value;
         var population = 0;
-        
+
         subtable = subtable.filter(this.filter_column, value);
         if (subvalue === "") {
             population = country_population[value];
@@ -147,7 +147,7 @@ class HopkinsConfirmedDataset extends HopkinsDataset {
         super({
             name: "confirmed",
             path: "csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv",
-            fields: ['confirmed', 'confirmed / population', 'confirmed increment'],
+            fields: ['confirmed', 'confirmed / population', 'confirmed increment', 'confirmed increment / population'],
         });
     }
 }
@@ -157,7 +157,7 @@ class HopkinsDeathsDataset extends HopkinsDataset {
         super({
             name: "deaths",
             path: "csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv",
-            fields: ['deaths', 'deaths / population', 'deaths increment'],
+            fields: ['deaths', 'deaths / population', 'deaths increment', 'deaths increment / population'],
         });
     }
 }
@@ -168,7 +168,7 @@ class HopkinsRecoveredDataset extends HopkinsDataset {
             name: "recovered",
             // path: "csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv",
             path: "csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv",
-            fields: ['recovered', 'recovered / population', 'recovered increment'],
+            fields: ['recovered', 'recovered / population', 'recovered increment', 'recovered increment / population'],
         });
     }
 }
