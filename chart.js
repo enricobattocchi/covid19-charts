@@ -42,7 +42,7 @@ var chart_config = {
                 },
                 ticks: {
                         major: {
-                            enabled: false, 
+                            enabled: false,
                             fontStyle: 'bold'
                         },
                         source: 'data',
@@ -64,7 +64,7 @@ var chart_config = {
                         var firstTick = ticks[0];
                         var i, ilen, val, tick, currMajor, lastMajor;
                         var patch = true;
-                        // there is a bug in Chart.js happening 
+                        // there is a bug in Chart.js happening
                         // when multiple months are spanned.
                         // the bug is fixed in https://github.com/chartjs/Chart.js/pull/6853
                         // but, however, is not currently deployed in the last stable version (2.9.7)
@@ -79,7 +79,7 @@ var chart_config = {
                         } else {
                             firstTick.major = false;
                         }
-                        if (patch) firstTick.major = true;                        
+                        if (patch) firstTick.major = true;
                         lastMajor = val.get(majorUnit);
 
                         for (i = 1, ilen = ticks.length; i < ilen; i++) {
@@ -143,14 +143,15 @@ class ChartWrapper {
     constructor() {
         var self = this;
         var ctx = document.getElementById('canvas').getContext('2d');
-        this.chart = new Chart(ctx, chart_config); 
-        this.serieses = [];   
+        this.chart = new Chart(ctx, chart_config);
+        this.serieses = [];
         this.days_today = date_to_days(new Date());
         this.time_shift = '';
         this.rate_plot = false;
         this.no_update = false;
         this.draw_fit = false;
         this.n_points = 0; // all
+        this.time_units = 1; // days
         this.fit_future_days = null;
         this.up_to_date = null;
         this.download_url = null;
@@ -160,8 +161,9 @@ class ChartWrapper {
         this.$pop = $("button[name='chart_pop']");
         this.$time_shift = $("select[name=time_shift]");
         this.$plot_type = $("select[name=chart_type]");
-        this.$draw_fit = $("input[name=draw_fit");
+        this.$draw_fit = $("input[name=draw_fit]");
         this.$n_points = $("select[name='n_points']");
+        this.$time_units = $("select[name='time_units']");
         this.$advanced_settings = $("input[name='advanced_settings']");
         this.$axis_date_min = $("input[name='axis_date_min']");
         this.$axis_date_max = $("input[name='axis_date_max']");
@@ -172,9 +174,9 @@ class ChartWrapper {
         this.$fit_future_days = $("input[name='fit_future_days']");
         this.$up_to_date = $("input[name='up_to_date']");
         this.$download = $("#download_button");
-    
-        this.$clear.click(function(){ 
-            self.clear(); 
+
+        this.$clear.click(function(){
+            self.clear();
             replay.length = 0;
         });
 
@@ -211,8 +213,21 @@ class ChartWrapper {
             var val = self.$n_points.children("option:selected").val();
             if (val === "") {
                 self.n_points = 0;
+                self.$time_units.prop('disabled', true);
             } else {
                 self.n_points = parseInt(val);
+                self.$time_units.prop('disabled', false);
+            }
+            self.redraw();
+        });
+        this.$n_points.change();
+
+        this.$time_units.change(function() {
+            var val = self.$time_units.children("option:selected").val();
+            if (val === "") {
+                self.time_units = 1;
+            } else {
+                self.time_units = parseInt(val);
             }
             self.redraw();
         });
@@ -254,7 +269,7 @@ class ChartWrapper {
             self.update();
         })
         this.$axis_date_max.change();
-        
+
         this.$axis_days_min.change(function() {
             var val = self.$axis_days_min.val();
             self.chart.config.options.scales.xAxes[1].ticks.min = val ? parseInt(val) : undefined;
@@ -268,7 +283,7 @@ class ChartWrapper {
             self.update();
         })
         this.$axis_days_max.change();
-        
+
         this.$axis_count_min.change(function() {
             var val = self.$axis_count_min.val();
             self.chart.config.options.scales.yAxes[0].ticks.min = val ? parseInt(val) : undefined;
@@ -282,7 +297,7 @@ class ChartWrapper {
             self.update();
         })
         this.$axis_count_max.change();
-        
+
         this.$fit_future_days.change(function() {
             self.fit_future_days = parseFloat(self.$fit_future_days.val());
             self.redraw();
@@ -307,6 +322,7 @@ class ChartWrapper {
             plot_type: this.$plot_type.children("option:selected").val(),
             draw_fit: this.draw_fit,
             n_points: this.n_points,
+            time_units: this.time_units,
             up_to_date: this.$up_to_date.val(),
             axis_days_min: this.$axis_days_min.val(),
             axis_days_max: this.$axis_days_max.val(),
@@ -415,7 +431,7 @@ class ChartWrapper {
         var data_x = series.data_x;
         var data_y = series.data_y;
         var label = series.label;
-        
+
         // crop to up_to_date
         if (this.up_to_date) {
             var i = 0;
@@ -427,22 +443,22 @@ class ChartWrapper {
             // this will be the reference series for time shifts
             this.ref_data_y = data_y;
         }
-    
+
         // data_x will be days from now on...
         data_x = data_x.map(date_to_days);
         if (this.serieses.length === 0) {
             this.reference_point = {
-                x: last(data_x), 
+                x: last(data_x),
                 y: last(data_y)
             }
         }
-        
+
         // consider only last points
         if (this.n_points > 0) {
-            data_x = data_x.slice(-this.n_points);
-            data_y = data_y.slice(-this.n_points);
+            data_x = data_x.slice(-this.n_points * this.time_units);
+            data_y = data_y.slice(-this.n_points * this.time_units);
         }
-        
+
         if (series.y_axis === 'events') {
             for (var i=0; i<data_x.length;++i) {
                 this.chart.options.annotation.annotations.push({
@@ -450,7 +466,7 @@ class ChartWrapper {
                     mode: 'vertical',
                     scaleID: 'date',
                     value: days_to_date(data_x[i]),
-                    label: {                    
+                    label: {
                         content: data_y[i],
                         enabled: true,
                         rotation: 90,
@@ -460,17 +476,17 @@ class ChartWrapper {
                     borderWidth: 2,
                     position: 'right'
                 })
-            } 
+            }
         } else {
-            
+
             if (data_x.length < 2) {
                 console.log("too few data points for series " + label);
                 return;
             }
-    
+
             // compute linear regression
             var lr = linearRegression(data_y.map(Math.log), data_x)
-            
+
             // time shift
             var offset = 0;
             if (this.time_shift == 'lr_shift') {
@@ -499,14 +515,14 @@ class ChartWrapper {
                 var new_data_y = new Array(new_data_x.length);
                 for (var i=0; i < new_data_y.length;++i) {
                     if (data_y[i]>0) {
-                        new_data_y[i] = (data_y[i+1] / data_y[i] - 1.0) * 100.0; 
+                        new_data_y[i] = (data_y[i+1] / data_y[i] - 1.0) * 100.0;
                     } else {
                         new_data_y[i] = 0.0;
                     }
                 }
                 data_x = new_data_x;
                 data_y = new_data_y;
-                // smooth out 
+                // smooth out
                 if (this.rate_plot == "rate_smooth") {
                     data_y = filter(data_y, binomial_coeff(5));
                 }
@@ -517,9 +533,9 @@ class ChartWrapper {
             var points;
             if (this.time_shift) {
                 points = data_x.map(function(x, i) {return {
-                    x: x + offset - self.reference_point.x, 
+                    x: x + offset - self.reference_point.x,
                     y: data_y[i]
-                }});            
+                }});
             } else {
                 points = data_x.map(days_to_date).map(function(x, i) {return {"x": x, "y": data_y[i]}});
             }
@@ -572,7 +588,7 @@ class ChartWrapper {
             series.lr = lr;
             this.display_regression(series);
         }
-        
+
         // store the series for future redraw
         this.serieses.push(series);
 
@@ -590,20 +606,20 @@ class ChartWrapper {
         if (lr.m>0) {
             msg += "doubling time: <b>"+ (Math.log(2.0)/lr.m).toFixed(1) +"</b> days, ";
             msg += "origin <b>" + days_passed.toFixed(1) + "</b> days ago: "
-            + "<b>" + first_day.getDate() + " " + months[first_day.getMonth()]+ " " + first_day.getFullYear() + "</b>"; 
+            + "<b>" + first_day.getDate() + " " + months[first_day.getMonth()]+ " " + first_day.getFullYear() + "</b>";
         } else {
             msg += "halving time: <b>"+ (Math.log(2.0)/(-lr.m)).toFixed(1) +"</b> days, ";
             msg += "back to origin in <b>" + (-days_passed).toFixed(1) + "</b> days: "
-            + "<b>" + first_day.getDate() + " " + months[first_day.getMonth()]+ " " + first_day.getFullYear() + "</b>"; 
+            + "<b>" + first_day.getDate() + " " + months[first_day.getMonth()]+ " " + first_day.getFullYear() + "</b>";
         }
         this.$info.append(
-            "<li> <div class='label' style='background-color:" + series.color + "'></div> "+name+":</font> " 
+            "<li> <div class='label' style='background-color:" + series.color + "'></div> "+name+":</font> "
             + msg
             + "<!-- m="+lr.m+" "
             + "q="+lr.q+" --></li>"
             );
     }
-    
+
     clear() {
         this.chart.data.datasets = [];
         this.serieses = [];
