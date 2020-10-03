@@ -6,6 +6,10 @@ class DpcDataset extends BaseDataset {
     constructor(options) {
         super(options);
         this.fields = {
+            varianti : [
+                "",
+                "incremento",
+            ],
             dati: [
                 "ricoverati_con_sintomi",
                 "terapia_intensiva",
@@ -21,47 +25,14 @@ class DpcDataset extends BaseDataset {
                 "casi_da_sospetto_diagnostico",
                 "casi_da_screening",
             ],
-            // computed fields:
-            incrementi: [
-                "incremento deceduti",
-                "incremento ricoverati_con_sintomi",
-                "incremento terapia_intensiva",
-                "incremento totale_ospedalizzati",
-                "incremento isolamento_domiciliare",
-                "incremento totale_positivi",
-                "incremento dimessi_guariti",
-                "incremento totale_casi",
-                "incremento tamponi",
-                "incremento casi_testati",
-                "incremento casi_da_sospetto_diagnostico",
-                "incremento casi_da_screening",
-            ],
             rapporti: [
-                "ricoverati_con_sintomi / totale_casi",
-                "terapia_intensiva / totale_casi",
-                "totale_ospedalizzati / totale_casi",
-                "isolamento_domiciliare / totale_casi",
-                "totale_positivi / totale_casi",
-                "nuovi_positivi / totale_casi",
-                "dimessi_guariti / totale_casi",
-                "deceduti / totale_casi",
-
-                "totale_casi / tamponi",
-                "totale_casi / casi_testati",
-                "tamponi / popolazione",
-
-                "totale_casi / popolazione",
-                "ricoverati_con_sintomi / popolazione",
-                "terapia_intensiva / popolazione",
-                "totale_ospedalizzati / popolazione",
-                "isolamento_domiciliare / popolazione",
-                "totale_positivi / popolazione",
-                "nuovi_positivi / popolazione",
-                "dimessi_guariti / popolazione",
-                "deceduti / popolazione",
-                "incremento totale_casi / popolazione",
-                "nuovi_positivi / incremento casi_testati",
-                "nuovi_positivi / incremento tamponi",
+                "",
+                "/ totale_casi",
+                "/ tamponi",
+                "/ casi_testati",
+                "/ popolazione",
+                "/ incremento casi_testati",
+                "/ incremento tamponi",
             ]
         };
         this.filter_column = options.filter_column || null;
@@ -71,7 +42,9 @@ class DpcDataset extends BaseDataset {
 
     init_html() {
         super.init_html();
+        this.$variants = $("select[name='" + this.prefix + "_variants']");
         this.$column = $("select[name='" + this.prefix + "_column']");
+        this.$ratio = $("select[name='" + this.prefix + "_ratio']");
         this.$select = this.filter_column ? $("select[name='" + this.prefix + "_" + this.filter_column + "']") : null;
     }
 
@@ -90,19 +63,31 @@ class DpcDataset extends BaseDataset {
         }
 
         this.$column.find('option').remove();
-        Object.entries(this.fields).forEach(function(entry){
-            const [name,group] = entry;
-            self.$column.append("<optgroup label='" + name + "'>");
-            group.forEach(function(field){
-                self.$column.append("<option value='" + field + "'>" + dash_to_space(field) + "</option>");
-            });
-            self.$column.append("</optgroup>");
+        this.fields.dati.forEach(function(field){
+            self.$column.append("<option value='" + field + "'>" + dash_to_space(field) + "</option>");
+        });
+
+        this.$variants.find('option').remove();
+        this.fields.varianti.forEach(function(field){
+            self.$variants.append("<option value='" + field + "'>" + dash_to_space(field) + "</option>");
+        });
+
+        this.$ratio.find('option').remove();
+        this.fields.rapporti.forEach(function(field){
+            self.$ratio.append("<option value='" + field + "'>" + dash_to_space(field) + "</option>");
         });
     }
 
     get_options() {
         var options = super.get_options();
-        options.column = this.$column.children("option:selected").val();
+        options.column = "";
+        if ( this.$variants.children("option:selected").val() !== "") {
+            options.column = this.$variants.children("option:selected").val() + " ";
+        }
+        options.column += this.$column.children("option:selected").val();
+        if ( this.$ratio.children("option:selected").val() !== "") {
+            options.column += this.$ratio.children("option:selected").val();
+        }
         if (this.filter_column) {
             options.value = this.$select.children("option:selected").val();
             options.value_name = this.$select.children("option:selected").text()
