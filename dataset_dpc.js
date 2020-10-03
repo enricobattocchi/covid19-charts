@@ -59,6 +59,7 @@ class DpcDataset extends BaseDataset {
                 "nuovi_positivi / popolazione",
                 "dimessi_guariti / popolazione",
                 "deceduti / popolazione",
+                "incremento totale_casi / popolazione",
                 "nuovi_positivi / incremento casi_testati",
                 "nuovi_positivi / incremento tamponi",
             ]
